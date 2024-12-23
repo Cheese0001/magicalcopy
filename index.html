@@ -1,0 +1,66 @@
+// manifest.json
+{
+  "manifest_version": 3,
+  "name": "Quick Text Expander",
+  "version": "1.0",
+  "description": "A simple text-expansion tool for Chrome.",
+  "permissions": ["activeTab", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "expand-text": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E"
+      },
+      "description": "Insert predefined text"
+    }
+  },
+  "host_permissions": ["<all_urls>"]
+}
+
+// background.js
+const textSnippets = {
+  "shortcut1": "Hi [Patient], this is Shem from Excel Medical. I tried calling but reached your voicemail...",
+  "shortcut2": "Thank you for reaching out. Please let me know if you have any other concerns!",
+};
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command === "expand-text") {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tabId = tabs[0].id;
+      chrome.scripting.executeScript({
+        target: { tabId },
+        function: insertText,
+        args: [textSnippets.shortcut1],
+      });
+    });
+  }
+});
+
+function insertText(text) {
+  const activeElement = document.activeElement;
+  if (activeElement && (activeElement.tagName === "TEXTAREA" || activeElement.tagName === "INPUT")) {
+    const cursorPos = activeElement.selectionStart;
+    const value = activeElement.value;
+    activeElement.value = value.slice(0, cursorPos) + text + value.slice(cursorPos);
+    activeElement.selectionStart = activeElement.selectionEnd = cursorPos + text.length;
+  }
+}
+
+// Optional popup.html content (commented out)
+/*
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Text Expander</title>
+</head>
+<body>
+  <h1>Text Snippets</h1>
+  <ul>
+    <li><b>Shortcut 1:</b> Hi [Patient]...</li>
+    <li><b>Shortcut 2:</b> Thank you for...</li>
+  </ul>
+</body>
+</html>
+*/
